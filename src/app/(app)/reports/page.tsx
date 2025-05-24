@@ -3,7 +3,7 @@
 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart as LucidePieChart, LineChart as LucideLineChart } from 'lucide-react'; // Renamed PieChart to avoid conflict
+import { BarChart as LucideBarChart, PieChart as LucidePieChart, LineChart as LucideLineChartIcon } from 'lucide-react'; // Renamed PieChart to avoid conflict, Renamed BarChart, Renamed LineChart
 import Image from 'next/image';
 import {
   ChartTooltip,
@@ -12,7 +12,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { Bar, Line, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart as RechartsPieChart } from 'recharts';
+import { Bar, Line, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart as RechartsPieChart, BarChart, LineChart } from 'recharts';
 
 
 // Placeholder data for charts
@@ -64,10 +64,10 @@ export default function ReportsPage() {
             <ChartContainer config={chartConfig} className="aspect-square h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
+                  <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name"/>} />
                   <Pie data={spendingByCategoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                      {spendingByCategoryData.map((entry, index) => {
-                        const colorKey = entry.name.toLowerCase();
+                        const colorKey = entry.name.toLowerCase().replace(/ & /g, '-'); // handle "Food & Dining"
                         return <Cell key={`cell-${index}`} fill={`var(--color-${colorKey})`} />;
                       })}
                   </Pie>
@@ -81,7 +81,7 @@ export default function ReportsPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <BarChart className="mr-2 h-5 w-5 text-primary" /> Income vs. Expense
+              <LucideBarChart className="mr-2 h-5 w-5 text-primary" /> Income vs. Expense
             </CardTitle>
             <CardDescription>Comparison over the last 6 months.</CardDescription>
           </CardHeader>
@@ -105,7 +105,7 @@ export default function ReportsPage() {
         <Card className="lg:col-span-2 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <LucideLineChart className="mr-2 h-5 w-5 text-primary" /> Spending Trend
+              <LucideLineChartIcon className="mr-2 h-5 w-5 text-primary" /> Spending Trend
             </CardTitle>
             <CardDescription>Your overall spending trend over time.</CardDescription>
           </CardHeader>
