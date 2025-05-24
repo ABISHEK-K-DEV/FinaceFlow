@@ -25,14 +25,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      setLoading(true); // Ensure loading is true while processing auth state
+      setLoading(true); 
 
       if (firebaseUser) {
         try {
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
-            setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDocSnap.data() } as AppUser);
+            setUser({ 
+              uid: firebaseUser.uid, 
+              email: firebaseUser.email, 
+              displayName: firebaseUser.displayName, // Prioritize Auth display name
+              photoURL: firebaseUser.photoURL,     // Prioritize Auth photo URL
+              ...userDocSnap.data()                 // Spread Firestore data, potentially overriding displayName/photoURL if they exist there and are more up-to-date
+            } as AppUser);
           } else {
             // Create a new user document if it doesn't exist (e.g., first login after signup)
             const newUser: AppUser = {
@@ -46,34 +52,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await setDoc(userDocRef, newUser);
             setUser(newUser);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching/setting user document in AuthContext:", error);
-          setUser(null); // Ensure user is null if there's an error during Firestore operations
+          // If Firestore fails (e.g. offline, or DB not created), but we have firebaseUser,
+          // use its data as a fallback to keep the user minimally "logged in".
+          console.warn("Using fallback user data from Firebase Auth due to Firestore error. User-specific data from Firestore (like role, custom fields) might be missing or stale.");
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            // createdAt and role will be undefined, as they come from Firestore
+          });
         }
       } else {
         setUser(null);
       }
 
       setLoading(false);
-      setIsReady(true); // isReady is set to true after the first auth state check completes
+      setIsReady(true); 
     });
 
     return () => unsubscribe();
   }, []);
 
   const logout = async () => {
-    // setLoading(true); // Setting loading true here can be redundant as onAuthStateChanged will handle it
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will set user to null and setLoading to false
     } catch (error) {
       console.error("Error signing out: ", error);
-      // setLoading(false); // Fallback if signOut errors before onAuthStateChanged
     }
-    // No finally block needed for setLoading(false) if onAuthStateChanged handles it reliably.
-    // However, if there's a specific scenario where onAuthStateChanged might not fire after a failed signout,
-    // then setLoading(false) in a catch/finally might be considered.
-    // For now, relying on onAuthStateChanged for state consistency.
   };
 
   return (
