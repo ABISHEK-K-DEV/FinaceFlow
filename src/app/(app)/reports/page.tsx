@@ -1,8 +1,9 @@
+
 'use client';
 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, LineChart as LucideLineChart } from 'lucide-react'; // Renamed to avoid conflict
+import { BarChart, PieChart as LucidePieChart, LineChart as LucideLineChart } from 'lucide-react'; // Renamed PieChart to avoid conflict
 import Image from 'next/image';
 import {
   ChartTooltip,
@@ -11,16 +12,16 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { Bar, Line, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Bar, Line, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart as RechartsPieChart } from 'recharts';
 
 
 // Placeholder data for charts
 const spendingByCategoryData = [
-  { name: 'Food', value: 400, fill: 'var(--color-chart-1)' },
-  { name: 'Transport', value: 300, fill: 'var(--color-chart-2)' },
-  { name: 'Entertainment', value: 200, fill: 'var(--color-chart-3)' },
-  { name: 'Utilities', value: 150, fill: 'var(--color-chart-4)' },
-  { name: 'Other', value: 100, fill: 'var(--color-chart-5)' },
+  { name: 'Food', value: 400 },
+  { name: 'Transport', value: 300 },
+  { name: 'Entertainment', value: 200 },
+  { name: 'Utilities', value: 150 },
+  { name: 'Other', value: 100 },
 ];
 
 const incomeVsExpenseData = [
@@ -55,22 +56,23 @@ export default function ReportsPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <PieChart className="mr-2 h-5 w-5 text-primary" /> Spending by Category
+              <LucidePieChart className="mr-2 h-5 w-5 text-primary" /> Spending by Category
             </CardTitle>
             <CardDescription>Breakdown of your expenses for the current month.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="aspect-square h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <RechartsPieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" />} />
                   <Pie data={spendingByCategoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                     {spendingByCategoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
+                     {spendingByCategoryData.map((entry, index) => {
+                        const colorKey = entry.name.toLowerCase();
+                        return <Cell key={`cell-${index}`} fill={`var(--color-${colorKey})`} />;
+                      })}
                   </Pie>
                   <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
+                </RechartsPieChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
@@ -139,3 +141,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
