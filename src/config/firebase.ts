@@ -1,7 +1,7 @@
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 // import { getAnalytics } from "firebase/analytics"; // Optional: if you want analytics
 
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -57,7 +57,21 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
+
+enableIndexedDbPersistence(db)
+  .then(() => {
+    console.log("Firestore offline persistence enabled.");
+  })
+  .catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.warn("Firestore offline persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.");
+    } else if (err.code == 'unimplemented') {
+      console.warn("Firestore offline persistence failed: The current browser does not support all of the features required to enable persistence.");
+    } else {
+      console.error("Firestore offline persistence failed with error: ", err);
+    }
+  });
+
 // const analytics = getAnalytics(app); // Optional
 
 export { app, auth, db };
-
