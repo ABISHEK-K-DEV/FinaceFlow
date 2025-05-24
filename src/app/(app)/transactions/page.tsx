@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -19,47 +20,97 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { PlusCircle, Filter, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import type { Transaction } from '@/lib/types'; // Assuming you have this type
+import type { Transaction } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { AddTransactionForm, type AddTransactionFormInputs } from '@/components/transactions/AddTransactionForm';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from "@/hooks/use-toast";
 
 // Placeholder data - replace with actual data fetching and state management
 const initialTransactions: Transaction[] = [
-  { id: '1', userId: 'user1', type: 'expense', amount: 75.20, category: 'Food & Dining', description: 'Supermarket run', date: '2024-07-28', createdAt: '', updatedAt: '' },
-  { id: '2', userId: 'user1', type: 'income', amount: 2500.00, category: 'Salary', description: 'Monthly paycheck', date: '2024-07-25', createdAt: '', updatedAt: '' },
-  { id: '3', userId: 'user1', type: 'expense', amount: 15.99, category: 'Subscriptions', description: 'Netflix', date: '2024-07-20', createdAt: '', updatedAt: '' },
-  { id: '4', userId: 'user1', type: 'expense', amount: 22.50, category: 'Transportation', description: 'Gasoline', date: '2024-07-19', createdAt: '', updatedAt: '' },
-  { id: '5', userId: 'user1', type: 'income', amount: 300.00, category: 'Freelance', description: 'Web design project', date: '2024-07-15', createdAt: '', updatedAt: '' },
+  { id: '1', userId: 'user1', type: 'expense', amount: 75.20, category: 'Food & Dining', description: 'Supermarket run', date: '2024-07-28T00:00:00.000Z', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: '2', userId: 'user1', type: 'income', amount: 2500.00, category: 'Salary', description: 'Monthly paycheck', date: '2024-07-25T00:00:00.000Z', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: '3', userId: 'user1', type: 'expense', amount: 15.99, category: 'Subscriptions', description: 'Netflix', date: '2024-07-20T00:00:00.000Z', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: '4', userId: 'user1', type: 'expense', amount: 22.50, category: 'Transportation', description: 'Gasoline', date: '2024-07-19T00:00:00.000Z', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: '5', userId: 'user1', type: 'income', amount: 300.00, category: 'Freelance', description: 'Web design project', date: '2024-07-15T00:00:00.000Z', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions); // State for transactions
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx =>
       tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tx.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, searchTerm]);
 
-  const handleAddTransaction = () => {
-    // Placeholder for add transaction modal/form
-    console.log('Add new transaction');
-    // Example: Adding a new transaction (in real app, this would come from a form)
-    // const newTx: Transaction = { id: String(transactions.length + 1), userId: 'user1', type: 'expense', amount: 50, category: 'New Category', description: 'New Item', date: new Date().toISOString().split('T')[0] };
-    // setTransactions(prev => [newTx, ...prev]);
+  const handleOpenAddDialog = () => {
+    setIsAddDialogOpen(true);
+  };
+
+  const handleSaveTransaction = async (data: AddTransactionFormInputs) => {
+    setFormLoading(true);
+    // In a real app, you would save to Firestore here.
+    // For now, we'll simulate an async operation and add to local state.
+    await new Promise(resolve => setTimeout(resolve, 500)); 
+
+    const newTransaction: Transaction = {
+      id: String(Date.now()), // Temporary ID
+      userId: user?.uid || 'user1', // Use actual user ID or placeholder
+      type: data.type,
+      amount: data.amount,
+      category: data.category,
+      description: data.description,
+      date: data.date.toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setTransactions(prev => [newTransaction, ...prev]);
+    setFormLoading(false);
+    setIsAddDialogOpen(false); // Close dialog on successful save
+    toast({
+        title: "Transaction Added",
+        description: `${data.description} has been successfully added.`,
+    });
   };
   
   const handleEditTransaction = (id: string) => {
     console.log('Edit transaction:', id);
+    // Placeholder: Find transaction, open dialog with initialData
+    toast({
+        title: "Edit Action",
+        description: "Edit functionality is not yet implemented.",
+        variant: "destructive"
+    });
   };
 
   const handleDeleteTransaction = (id: string) => {
     console.log('Delete transaction:', id);
+    // Placeholder: In a real app, confirm then delete from Firestore.
     setTransactions(prev => prev.filter(tx => tx.id !== id));
+    toast({
+        title: "Transaction Deleted",
+        description: "The transaction has been removed.",
+    });
   };
 
 
@@ -69,11 +120,28 @@ export default function TransactionsPage() {
         title="Transactions"
         description="Manage your income and expenses."
         actions={
-          <Button onClick={handleAddTransaction}>
+          <Button onClick={handleOpenAddDialog}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction
           </Button>
         }
       />
+      
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Add New Transaction</DialogTitle>
+            <DialogDescription>
+              Fill in the details for your new income or expense.
+            </DialogDescription>
+          </DialogHeader>
+          <AddTransactionForm
+            onSubmit={handleSaveTransaction}
+            onCancel={() => setIsAddDialogOpen(false)}
+            isLoading={formLoading}
+          />
+        </DialogContent>
+      </Dialog>
+
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <Input
@@ -147,7 +215,7 @@ export default function TransactionsPage() {
           <p className="text-muted-foreground mb-4">
             {searchTerm ? "Try adjusting your search or filter." : "Get started by adding your first transaction."}
           </p>
-          <Button onClick={handleAddTransaction}>
+          <Button onClick={handleOpenAddDialog}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction
           </Button>
         </div>
@@ -155,3 +223,4 @@ export default function TransactionsPage() {
     </>
   );
 }
+
