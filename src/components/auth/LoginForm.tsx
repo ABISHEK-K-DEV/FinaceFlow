@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -37,12 +38,14 @@ export function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      router.push('/dashboard');
+      router.replace('/dashboard'); // Changed to .replace for better history management
     } catch (error: any) {
       console.error('Login error:', error);
       let errorMessage = 'Failed to login. Please check your credentials.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'Invalid email or password.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many login attempts. Please try again later.';
       }
       toast({
         title: 'Login Failed',
@@ -92,3 +95,4 @@ export function LoginForm() {
     </form>
   );
 }
+

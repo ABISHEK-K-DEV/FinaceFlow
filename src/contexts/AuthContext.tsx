@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      setLoading(true); // Set loading to true at the start of processing any auth state change
+      setLoading(true); // Ensure loading is true while processing auth state
 
       if (firebaseUser) {
         try {
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (userDocSnap.exists()) {
             setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDocSnap.data() } as AppUser);
           } else {
-            // Create a new user document if it doesn't exist
+            // Create a new user document if it doesn't exist (e.g., first login after signup)
             const newUser: AppUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -62,21 +62,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = async () => {
-    setLoading(true);
+    // setLoading(true); // Setting loading true here can be redundant as onAuthStateChanged will handle it
     try {
       await firebaseSignOut(auth);
-      // setUser(null); // onAuthStateChanged will handle setting user to null
+      // onAuthStateChanged will set user to null and setLoading to false
     } catch (error) {
       console.error("Error signing out: ", error);
-      // Potentially show a toast notification here
-    } finally {
-      // setLoading(false); // onAuthStateChanged will also set loading to false.
-                         // Keeping it here can be a fallback if signout has issues before onAuthStateChanged fires.
-                         // For now, let onAuthStateChanged manage the final loading state for consistency.
-                         // If firebaseSignOut itself errors and onAuthStateChanged doesn't fire with null,
-                         // loading might stay true. So, it's safer to have setLoading(false) here.
-      setLoading(false);
+      // setLoading(false); // Fallback if signOut errors before onAuthStateChanged
     }
+    // No finally block needed for setLoading(false) if onAuthStateChanged handles it reliably.
+    // However, if there's a specific scenario where onAuthStateChanged might not fire after a failed signout,
+    // then setLoading(false) in a catch/finally might be considered.
+    // For now, relying on onAuthStateChanged for state consistency.
   };
 
   return (
@@ -93,3 +90,4 @@ export const useAuthContext = () => {
   }
   return context;
 };
+
