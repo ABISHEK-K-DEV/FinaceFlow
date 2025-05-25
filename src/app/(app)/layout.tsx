@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -65,8 +66,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <SidebarMenu>
             {SIDENAV_ITEMS.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <Link href={item.href} passHref legacyBehavior>
-                  <SidebarMenuButton tooltip={item.title} isActive={router.pathname === item.href}>
+                <Link href={item.href} asChild>
+                  <SidebarMenuButton tooltip={item.title} isActive={router.pathname === item.href} disabled={item.disabled}>
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -80,7 +81,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
            <SidebarMenu>
             {SIDENAV_BOTTOM_ITEMS.map((item) => (
               <SidebarMenuItem key={item.title}>
-                 <Link href={item.href} passHref legacyBehavior>
+                 <Link href={item.href} asChild>
                     <SidebarMenuButton tooltip={item.title} isActive={router.pathname === item.href} disabled={item.disabled}>
                         <item.icon />
                         <span>{item.title}</span>
