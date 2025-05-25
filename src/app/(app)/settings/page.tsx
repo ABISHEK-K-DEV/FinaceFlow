@@ -2,7 +2,7 @@
 'use client';
 
 import type { ChangeEvent } from 'react';
-import React, { useState, useRef, useEffect } from 'react'; // Added React and useEffect import
+import React, { useState, useRef, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,11 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db, storage } from '@/config/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export default function SettingsPage() {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -29,12 +29,19 @@ export default function SettingsPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState(user?.displayName || '');
 
-  // Update displayNameInput when user data changes (e.g., after initial load)
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   useEffect(() => {
     if (user?.displayName) {
       setDisplayNameInput(user.displayName);
     }
-  }, [user?.displayName]);
+    if (user?.photoURL) {
+        setPhotoPreview(user.photoURL);
+    }
+  }, [user?.displayName, user?.photoURL]);
 
 
   const getInitials = (name?: string | null) => {
@@ -62,10 +69,6 @@ export default function SettingsPage() {
         await updateProfile(auth.currentUser, { displayName: displayNameInput });
         await updateDoc(doc(db, 'users', user.uid), { displayName: displayNameInput });
         profileUpdated = true;
-        toast({
-          title: 'Profile Updated',
-          description: 'Your display name has been updated.',
-        });
       }
 
       // Upload and update photo if a new one is selected
@@ -78,21 +81,33 @@ export default function SettingsPage() {
         await updateProfile(auth.currentUser, { photoURL: downloadURL });
         await updateDoc(doc(db, 'users', user.uid), { photoURL: downloadURL });
         
-        setPhotoPreview(downloadURL); 
-        setSelectedFile(null); 
+        setPhotoPreview(downloadURL);
+        setSelectedFile(null);
         photoUpdated = true;
+      }
+
+      if (profileUpdated && photoUpdated) {
         toast({
+          title: 'Profile Updated',
+          description: 'Display name and photo have been updated.',
+        });
+      } else if (profileUpdated) {
+         toast({
+          title: 'Profile Updated',
+          description: 'Your display name has been updated.',
+        });
+      } else if (photoUpdated) {
+         toast({
           title: 'Photo Updated',
           description: 'Your profile photo has been successfully updated.',
         });
-      }
-
-      if (!profileUpdated && !photoUpdated) {
+      } else {
         toast({
           title: 'No Changes',
           description: 'No changes were made to your profile.',
         });
       }
+
     } catch (error) {
       console.error('Failed to save profile:', error);
       toast({
@@ -128,12 +143,50 @@ export default function SettingsPage() {
     }
   };
 
-  const handleChangePassword = () => {
-    console.log('Change Password clicked');
-    toast({
-      title: 'Password Action',
-      description: 'Change Password functionality is not yet implemented.',
-    });
+  const handleChangePassword = async () => {
+    if (!user || !auth.currentUser || !user.email) {
+      toast({ title: 'Error', description: 'User not found or email missing. Please re-login.', variant: 'destructive' });
+      return;
+    }
+    if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+      toast({ title: 'Missing Fields', description: 'Please fill in all password fields.', variant: 'destructive' });
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      toast({ title: 'Password Mismatch', description: 'New passwords do not match.', variant: 'destructive' });
+      return;
+    }
+    if (newPasswordInput.length < 6) {
+      toast({ title: 'Weak Password', description: 'New password must be at least 6 characters.', variant: 'destructive' });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPasswordInput);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      
+      // If re-authentication is successful, update the password
+      await updatePassword(auth.currentUser, newPasswordInput);
+      
+      toast({ title: 'Password Updated', description: 'Your password has been successfully changed.' });
+      setCurrentPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      let errorMessage = 'Failed to change password. Please try again.';
+      if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect current password. Please try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please try again later.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'The new password is too weak.';
+      }
+      toast({ title: 'Error Changing Password', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
   
   return (
@@ -153,7 +206,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={photoPreview || user?.photoURL || undefined} />
+                  <AvatarImage src={photoPreview || undefined} />
                   <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -179,7 +232,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
+                <Input id="email" type="email" value={user?.email || ''} disabled />
                  <p className="text-xs text-muted-foreground mt-1">Email cannot be changed here.</p>
               </div>
               <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
@@ -197,17 +250,38 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
                <div>
                 <Label htmlFor="currentPassword">Current Password</Label>
-                <Input id="currentPassword" type="password" />
+                <Input 
+                  id="currentPassword" 
+                  type="password" 
+                  value={currentPasswordInput}
+                  onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                  disabled={isChangingPassword}
+                />
               </div>
               <div>
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input id="newPassword" type="password" />
+                <Input 
+                  id="newPassword" 
+                  type="password" 
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  disabled={isChangingPassword}
+                />
               </div>
                <div>
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input id="confirmPassword" type="password" />
+                <Input 
+                  id="confirmPassword" 
+                  type="password" 
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  disabled={isChangingPassword}
+                />
               </div>
-              <Button onClick={handleChangePassword}>Change Password</Button>
+              <Button onClick={handleChangePassword} disabled={isChangingPassword}>
+                 {isChangingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                 {isChangingPassword ? 'Changing...' : 'Change Password'}
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -278,4 +352,5 @@ export default function SettingsPage() {
       </div>
     </>
   );
-}
+
+    
