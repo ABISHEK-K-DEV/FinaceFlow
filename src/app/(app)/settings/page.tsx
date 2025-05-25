@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,13 +12,39 @@ import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle, Bell, Palette, ShieldCheck, KeyRound } from 'lucide-react';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast'; // Added useToast import
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { toast } = useToast(); // Initialize useToast
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const handleSaveProfile = () => {
+    console.log('Save Profile clicked');
+    toast({
+      title: 'Profile Action',
+      description: 'Save Profile functionality is not yet implemented.',
+    });
+  };
+
+  const handleChangePhoto = () => {
+    console.log('Change Photo clicked');
+    toast({
+      title: 'Photo Action',
+      description: 'Change Photo functionality is not yet implemented.',
+    });
+  };
+
+  const handleChangePassword = () => {
+    console.log('Change Password clicked');
+    toast({
+      title: 'Password Action',
+      description: 'Change Password functionality is not yet implemented.',
+    });
   };
   
   return (
@@ -41,7 +68,7 @@ export default function SettingsPage() {
                   <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <Button variant="outline" size="sm">Change Photo</Button>
+                  <Button variant="outline" size="sm" onClick={handleChangePhoto}>Change Photo</Button>
                   <p className="text-xs text-muted-foreground mt-1">JPG, GIF or PNG. 1MB max.</p>
                 </div>
               </div>
@@ -53,7 +80,7 @@ export default function SettingsPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
               </div>
-              <Button>Save Profile</Button>
+              <Button onClick={handleSaveProfile}>Save Profile</Button>
             </CardContent>
           </Card>
 
@@ -75,7 +102,7 @@ export default function SettingsPage() {
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input id="confirmPassword" type="password" />
               </div>
-              <Button>Change Password</Button>
+              <Button onClick={handleChangePassword}>Change Password</Button>
             </CardContent>
           </Card>
         </div>

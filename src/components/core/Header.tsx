@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ export function AppHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings/profile"> {/* Placeholder link */}
+                <Link href="/settings"> {/* Changed from /settings/profile */}
                   <UserCircle className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
