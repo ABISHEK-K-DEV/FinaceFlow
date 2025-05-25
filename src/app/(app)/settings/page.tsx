@@ -11,40 +11,98 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserCircle, Bell, Palette, ShieldCheck, KeyRound } from 'lucide-react';
+import { UserCircle, Bell, Palette, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
+import { auth, db, storage } from '@/config/firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateProfile } from 'firebase/auth';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // Assuming useAuth provides the AppUser object including uid
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // To store the actual file for future upload
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState(user?.displayName || '');
+
+  // Update displayNameInput when user data changes (e.g., after initial load)
+  React.useEffect(() => {
+    if (user?.displayName) {
+      setDisplayNameInput(user.displayName);
+    }
+  }, [user?.displayName]);
+
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const handleSaveProfile = () => {
-    console.log('Save Profile clicked');
-    // In a real app, if selectedFile and photoPreview exist,
-    // you would upload selectedFile to Firebase Storage,
-    // get the download URL, and then update the user's photoURL
-    // in Firebase Auth and/or Firestore.
-    let description = 'Save Profile functionality is not yet implemented.';
-    if (photoPreview && selectedFile) {
-      description = `Photo preview updated. Actual upload and save for "${selectedFile.name}" is not yet implemented.`;
+  const handleSaveProfile = async () => {
+    if (!user || !auth.currentUser) {
+      toast({
+        title: 'Error',
+        description: 'User not found. Please re-login.',
+        variant: 'destructive',
+      });
+      return;
     }
-    toast({
-      title: 'Profile Action',
-      description: description,
-    });
-    // After successful save, you might want to clear the preview:
-    // setPhotoPreview(null);
-    // setSelectedFile(null);
+
+    setIsSavingProfile(true);
+    let profileUpdated = false;
+    let photoUpdated = false;
+
+    try {
+      // Update display name if changed
+      if (displayNameInput !== user.displayName) {
+        await updateProfile(auth.currentUser, { displayName: displayNameInput });
+        await updateDoc(doc(db, 'users', user.uid), { displayName: displayNameInput });
+        profileUpdated = true;
+        toast({
+          title: 'Profile Updated',
+          description: 'Your display name has been updated.',
+        });
+      }
+
+      // Upload and update photo if a new one is selected
+      if (selectedFile) {
+        const file = selectedFile;
+        const sRef = storageRef(storage, `profilePictures/${user.uid}/${file.name}`);
+        await uploadBytes(sRef, file);
+        const downloadURL = await getDownloadURL(sRef);
+
+        await updateProfile(auth.currentUser, { photoURL: downloadURL });
+        await updateDoc(doc(db, 'users', user.uid), { photoURL: downloadURL });
+        
+        setPhotoPreview(downloadURL); // Show new photo immediately
+        setSelectedFile(null); // Clear selected file
+        photoUpdated = true;
+        toast({
+          title: 'Photo Updated',
+          description: 'Your profile photo has been successfully updated.',
+        });
+      }
+
+      if (!profileUpdated && !photoUpdated) {
+        toast({
+          title: 'No Changes',
+          description: 'No changes were made to your profile.',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      toast({
+        title: 'Error Saving Profile',
+        description: 'Could not save your profile. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleChangePhoto = () => {
@@ -62,11 +120,10 @@ export default function SettingsPage() {
       reader.readAsDataURL(file);
       toast({
         title: 'Photo Selected',
-        description: 'New photo previewed. Click "Save Profile" to apply (upload not yet implemented).',
+        description: 'New photo previewed. Click "Save Profile" to upload and apply.',
       });
     }
-     // Reset the file input value so that selecting the same file again triggers onChange
-     if (event.target) {
+    if (event.target) {
       event.target.value = '';
     }
   };
@@ -107,19 +164,28 @@ export default function SettingsPage() {
                     accept="image/png, image/jpeg, image/gif"
                     style={{ display: 'none' }}
                   />
-                  <Button variant="outline" size="sm" onClick={handleChangePhoto}>Change Photo</Button>
+                  <Button variant="outline" size="sm" onClick={handleChangePhoto} disabled={isSavingProfile}>Change Photo</Button>
                   <p className="text-xs text-muted-foreground mt-1">JPG, GIF or PNG. 1MB max.</p>
                 </div>
               </div>
               <div>
                 <Label htmlFor="displayName">Display Name</Label>
-                <Input id="displayName" defaultValue={user?.displayName || ''} />
+                <Input 
+                  id="displayName" 
+                  value={displayNameInput} 
+                  onChange={(e) => setDisplayNameInput(e.target.value)} 
+                  disabled={isSavingProfile}
+                />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
+                 <p className="text-xs text-muted-foreground mt-1">Email cannot be changed here.</p>
               </div>
-              <Button onClick={handleSaveProfile}>Save Profile</Button>
+              <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+                {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isSavingProfile ? 'Saving...' : 'Save Profile'}
+              </Button>
             </CardContent>
           </Card>
 

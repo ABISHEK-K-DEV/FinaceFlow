@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getStorage } from "firebase/storage"; // Added
 // import { getAnalytics } from "firebase/analytics"; // Optional: if you want analytics
 
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -57,6 +58,7 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
+const storage = getStorage(app); // Added
 
 enableIndexedDbPersistence(db)
   .then(() => {
@@ -74,4 +76,4 @@ enableIndexedDbPersistence(db)
 
 // const analytics = getAnalytics(app); // Optional
 
-export { app, auth, db };
+export { app, auth, db, storage }; // Added storage to exports
