@@ -26,8 +26,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { PlusCircle, Filter, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useState, useMemo } from 'react';
@@ -68,29 +66,39 @@ export default function TransactionsPage() {
 
   const handleSaveTransaction = async (data: AddTransactionFormInputs) => {
     setFormLoading(true);
-    // In a real app, you would save to Firestore here.
-    // For now, we'll simulate an async operation and add to local state.
-    await new Promise(resolve => setTimeout(resolve, 500)); 
+    try {
+      // In a real app, you would save to Firestore here.
+      // For now, we'll simulate an async operation and add to local state.
+      await new Promise(resolve => setTimeout(resolve, 500)); 
 
-    const newTransaction: Transaction = {
-      id: String(Date.now()), // Temporary ID
-      userId: user?.uid || 'user1', // Use actual user ID or placeholder
-      type: data.type,
-      amount: data.amount,
-      category: data.category,
-      description: data.description,
-      date: data.date.toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const newTransaction: Transaction = {
+        id: String(Date.now()), // Temporary ID
+        userId: user?.uid || 'user1', // Use actual user ID or placeholder
+        type: data.type,
+        amount: data.amount,
+        category: data.category,
+        description: data.description,
+        date: data.date.toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    setTransactions(prev => [newTransaction, ...prev]);
-    setFormLoading(false);
-    setIsAddDialogOpen(false); // Close dialog on successful save
-    toast({
-        title: "Transaction Added",
-        description: `${data.description} has been successfully added.`,
-    });
+      setTransactions(prev => [newTransaction, ...prev]);
+      setIsAddDialogOpen(false); // Close dialog on successful save
+      toast({
+          title: "Transaction Added",
+          description: `${data.description} has been successfully added.`,
+      });
+    } catch (error) {
+      console.error("Failed to save transaction:", error);
+      toast({
+          title: "Error",
+          description: "Could not save transaction. Please try again.",
+          variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
+    }
   };
   
   const handleEditTransaction = (id: string) => {

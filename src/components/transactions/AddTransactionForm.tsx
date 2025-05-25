@@ -43,24 +43,45 @@ export function AddTransactionForm({ onSubmit, onCancel, initialData, isLoading 
     watch,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<AddTransactionFormInputs>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: initialData || {
-      type: 'expense',
-      date: new Date(),
-    },
+    defaultValues: initialData 
+      ? { ...initialData, date: initialData.date ? new Date(initialData.date) : new Date() } 
+      : {
+          type: 'expense',
+          date: new Date(),
+          description: '',
+          amount: undefined, // Or use a specific number like 0 if preferred for empty state
+          category: '',
+        },
   });
 
   const selectedType = watch('type');
-  const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES.filter(c => c.type === (initialData?.type || 'expense')));
+  const [availableCategories, setAvailableCategories] = useState(() => 
+    DEFAULT_CATEGORIES.filter(c => c.type === (initialData?.type || 'expense') || c.type === 'shared')
+  );
 
   useEffect(() => {
-    setAvailableCategories(DEFAULT_CATEGORIES.filter(c => c.type === selectedType || c.type === 'shared'));
-  }, [selectedType]);
+    const newCategories = DEFAULT_CATEGORIES.filter(c => c.type === selectedType || c.type === 'shared');
+    setAvailableCategories(newCategories);
+
+    const currentCategoryValue = watch('category');
+    if (currentCategoryValue && !newCategories.some(cat => cat.name === currentCategoryValue)) {
+      setValue('category', '', { shouldValidate: true });
+    }
+  }, [selectedType, setValue, watch]);
 
   const handleFormSubmit: SubmitHandler<AddTransactionFormInputs> = async (data) => {
     await onSubmit(data);
-    reset(); // Reset form after submission
+    // Reset to clean slate for new transaction, using the default values logic from useForm
+    reset({ 
+      type: 'expense',
+      date: new Date(),
+      description: '',
+      amount: undefined,
+      category: '',
+    }); 
   };
 
   return (
@@ -72,7 +93,10 @@ export function AddTransactionForm({ onSubmit, onCancel, initialData, isLoading 
           control={control}
           render={({ field }) => (
             <RadioGroup
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value);
+                // No need to call setValue for 'category' here, useEffect for selectedType handles it
+              }}
               defaultValue={field.value}
               className="flex space-x-4 pt-2"
               id="type"
@@ -121,7 +145,11 @@ export function AddTransactionForm({ onSubmit, onCancel, initialData, isLoading 
             name="category"
             control={control}
             render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value} // Ensure value is controlled
+                  defaultValue={field.value}
+                >
                     <SelectTrigger id="category" className={errors.category ? 'border-destructive' : ''} aria-invalid={errors.category ? "true" : "false"}>
                         <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -154,15 +182,16 @@ export function AddTransactionForm({ onSubmit, onCancel, initialData, isLoading 
                   aria-invalid={errors.date ? "true" : "false"}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                  {field.value ? format(new Date(field.value), 'PPP') : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={field.value}
+                  selected={field.value ? new Date(field.value) : undefined}
                   onSelect={field.onChange}
                   initialFocus
+                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                 />
               </PopoverContent>
             </Popover>
@@ -182,3 +211,4 @@ export function AddTransactionForm({ onSubmit, onCancel, initialData, isLoading 
     </form>
   );
 }
+
