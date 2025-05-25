@@ -2,6 +2,7 @@
 'use client';
 
 import type { ChangeEvent } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // Added React and useEffect import
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,14 +15,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle, Bell, Palette, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useRef } from 'react';
 import { auth, db, storage } from '@/config/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export default function SettingsPage() {
-  const { user } = useAuth(); // Assuming useAuth provides the AppUser object including uid
+  const { user } = useAuth(); 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [displayNameInput, setDisplayNameInput] = useState(user?.displayName || '');
 
   // Update displayNameInput when user data changes (e.g., after initial load)
-  React.useEffect(() => {
+  useEffect(() => {
     if (user?.displayName) {
       setDisplayNameInput(user.displayName);
     }
@@ -78,8 +78,8 @@ export default function SettingsPage() {
         await updateProfile(auth.currentUser, { photoURL: downloadURL });
         await updateDoc(doc(db, 'users', user.uid), { photoURL: downloadURL });
         
-        setPhotoPreview(downloadURL); // Show new photo immediately
-        setSelectedFile(null); // Clear selected file
+        setPhotoPreview(downloadURL); 
+        setSelectedFile(null); 
         photoUpdated = true;
         toast({
           title: 'Photo Updated',
