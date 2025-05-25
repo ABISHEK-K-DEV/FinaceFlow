@@ -1,6 +1,7 @@
 
 'use client';
 
+import type { ChangeEvent } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle, Bell, Palette, ShieldCheck, KeyRound } from 'lucide-react';
 import Image from 'next/image';
-import { useToast } from '@/hooks/use-toast'; // Added useToast import
+import { useToast } from '@/hooks/use-toast';
+import { useState, useRef } from 'react';
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // To store the actual file for future upload
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -25,18 +30,45 @@ export default function SettingsPage() {
 
   const handleSaveProfile = () => {
     console.log('Save Profile clicked');
+    // In a real app, if selectedFile and photoPreview exist,
+    // you would upload selectedFile to Firebase Storage,
+    // get the download URL, and then update the user's photoURL
+    // in Firebase Auth and/or Firestore.
+    let description = 'Save Profile functionality is not yet implemented.';
+    if (photoPreview && selectedFile) {
+      description = `Photo preview updated. Actual upload and save for "${selectedFile.name}" is not yet implemented.`;
+    }
     toast({
       title: 'Profile Action',
-      description: 'Save Profile functionality is not yet implemented.',
+      description: description,
     });
+    // After successful save, you might want to clear the preview:
+    // setPhotoPreview(null);
+    // setSelectedFile(null);
   };
 
   const handleChangePhoto = () => {
-    console.log('Change Photo clicked');
-    toast({
-      title: 'Photo Action',
-      description: 'Change Photo functionality is not yet implemented.',
-    });
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast({
+        title: 'Photo Selected',
+        description: 'New photo previewed. Click "Save Profile" to apply (upload not yet implemented).',
+      });
+    }
+     // Reset the file input value so that selecting the same file again triggers onChange
+     if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const handleChangePassword = () => {
@@ -64,10 +96,17 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={user?.photoURL || undefined} />
+                  <AvatarImage src={photoPreview || user?.photoURL || undefined} />
                   <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
                 <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/png, image/jpeg, image/gif"
+                    style={{ display: 'none' }}
+                  />
                   <Button variant="outline" size="sm" onClick={handleChangePhoto}>Change Photo</Button>
                   <p className="text-xs text-muted-foreground mt-1">JPG, GIF or PNG. 1MB max.</p>
                 </div>
