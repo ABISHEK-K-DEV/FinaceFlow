@@ -56,7 +56,7 @@ export const SIDENAV_BOTTOM_ITEMS: NavItem[] = [
     href: '/help', // Placeholder, can link to a documentation or support page
     icon: HelpCircle,
     description: 'Get help or contact support.',
-    disabled: true, // Example of a disabled item
+    // disabled: true, // Removed to enable the link
   },
 ];
 
