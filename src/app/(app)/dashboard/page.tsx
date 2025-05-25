@@ -1,3 +1,4 @@
+
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataCard } from '@/components/shared/DataCard';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description="Welcome back! Here's your financial overview."
         actions={
-          <Link href="/transactions/new" passHref>
+          <Link href="/transactions" passHref>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction
             </Button>
